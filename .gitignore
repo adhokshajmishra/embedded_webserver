@@ -1,0 +1,6 @@
+*.o
+*.so
+.idea/*
+cmake-build-debug/*
+*/__pycache__/*
+
