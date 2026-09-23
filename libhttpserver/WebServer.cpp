@@ -189,6 +189,9 @@ void WebServer::handle_request(boost::beast::http::request<Body, boost::beast::h
         message.type = RequestType::HEAD;
     else if (req.method() == http::verb::options)
         message.type = RequestType::OPTIONS;
+    // TODO: change once http::verb::query is supported
+    else if (req.method() == http::verb::unknown && req.method_string() == "QUERY")
+        message.type = RequestType::QUERY;
 
     std::stringstream sstr;
 

@@ -18,6 +18,7 @@ enum RequestType
     POST,
     PUT,
     DELETE,
+    QUERY,
     OPTIONS
 };
 

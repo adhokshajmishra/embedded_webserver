@@ -77,6 +77,12 @@ ChainRouter ChainRouter::head(std::function<HTTPMessage(const HTTPMessage&)> han
     return *this;
 }
 
+ChainRouter ChainRouter::query(std::function<HTTPMessage(const HTTPMessage&)> handler)
+{
+    query_handler.push_back(handler);
+    return *this;
+}
+
 HTTPMessage ChainRouter::operator()(const HTTPMessage& request)
 {
     HTTPMessage response, interim_request = request;
@@ -144,6 +150,18 @@ HTTPMessage ChainRouter::operator()(const HTTPMessage& request)
                 }
             }
             break;
+        case RequestType::QUERY:
+            for (const auto& handler : query_handler)
+            {
+                isProcessed = true;
+                interim_request = handler(interim_request);
+                if (!interim_request.isRequest)
+                {
+                    response = interim_request;
+                    break;
+                }
+            }
+            break;
         case RequestType::OPTIONS:
             {
                 isProcessed = true;
@@ -158,6 +176,8 @@ HTTPMessage ChainRouter::operator()(const HTTPMessage& request)
                     allowed_methods.append(", DELETE");
                 if (!head_handler.empty())
                     allowed_methods.append(", HEAD");
+                if (!query_handler.empty())
+                    allowed_methods.append(", QUERY");
 
                 response.header["Allow"] = allowed_methods;
                 response.header["Access-Control-Allow-Methods"] = allowed_methods;

@@ -12,7 +12,7 @@ class ChainRouter
 {
 private:
     std::string path;
-    std::vector<std::function<HTTPMessage(const HTTPMessage&)>> common_handler, get_handler, post_handler, put_handler, delete_handler, head_handler;
+    std::vector<std::function<HTTPMessage(const HTTPMessage&)>> common_handler, get_handler, post_handler, put_handler, delete_handler, head_handler, query_handler;
 public:
     ChainRouter route(std::string);
     ChainRouter get(std::function<HTTPMessage(const HTTPMessage&)>);
@@ -20,6 +20,7 @@ public:
     ChainRouter post(std::function<HTTPMessage(const HTTPMessage&)>);
     ChainRouter delete_(std::function<HTTPMessage(const HTTPMessage&)>);
     ChainRouter head(std::function<HTTPMessage(const HTTPMessage&)>);
+    ChainRouter query(std::function<HTTPMessage(const HTTPMessage&)>);
     ChainRouter all(std::function<HTTPMessage(const HTTPMessage&)>);
     HTTPMessage operator()(const HTTPMessage&);
 
