@@ -15,7 +15,7 @@ HTTPMessage default_req_handler(const std::string& destination, const HTTPMessag
     HTTPMessage response;
 
     std::stringstream ss;
-    ss << "Requested destination [" + destination + "] does not exist.\n\nQuery parameters:\n";
+    ss << "Requested destination [" << request.type << " " << destination << "] does not exist.\n\nQuery parameters:\n";
 
     for (const auto& it : request.query)
     {

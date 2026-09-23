@@ -13,6 +13,7 @@
 
 enum RequestType
 {
+    // update << implementation in .cpp file if enum values change
     HEAD,
     GET,
     POST,
@@ -21,6 +22,7 @@ enum RequestType
     QUERY,
     OPTIONS
 };
+std::ostream& operator<<(std::ostream& lhs, RequestType type);
 
 struct HTTPMessage
 {
