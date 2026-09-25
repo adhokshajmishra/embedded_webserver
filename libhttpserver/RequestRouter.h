@@ -10,18 +10,25 @@
 
 class ChainRouter
 {
+public:
+    using Handler = std::function<HTTPMessage(const HTTPMessage&)>;
+
 private:
     std::string path;
-    std::vector<std::function<HTTPMessage(const HTTPMessage&)>> common_handler, get_handler, post_handler, put_handler, delete_handler, head_handler, query_handler;
+    std::unordered_map<RequestType, std::vector<Handler>> request_handlers;
 public:
     ChainRouter route(std::string);
-    ChainRouter get(std::function<HTTPMessage(const HTTPMessage&)>);
-    ChainRouter put(std::function<HTTPMessage(const HTTPMessage&)>);
-    ChainRouter post(std::function<HTTPMessage(const HTTPMessage&)>);
-    ChainRouter delete_(std::function<HTTPMessage(const HTTPMessage&)>);
-    ChainRouter head(std::function<HTTPMessage(const HTTPMessage&)>);
-    ChainRouter query(std::function<HTTPMessage(const HTTPMessage&)>);
-    ChainRouter all(std::function<HTTPMessage(const HTTPMessage&)>);
+
+    ChainRouter addHandler(RequestType, Handler);
+    ChainRouter get(Handler);
+    ChainRouter put(Handler);
+    ChainRouter post(Handler);
+    ChainRouter patch(Handler);
+    ChainRouter delete_(Handler);
+    ChainRouter head(Handler);
+    ChainRouter query(Handler);
+    ChainRouter all(Handler);
+
     HTTPMessage operator()(const HTTPMessage&);
 
     friend std::string destination(const ChainRouter& router);

@@ -13,11 +13,15 @@
 
 enum RequestType
 {
+    // internal type, used in RequestRouter for catch-all handler
+    ALL,
+
     // update << implementation in .cpp file if enum values change
     HEAD,
     GET,
     POST,
     PUT,
+    PATCH,
     DELETE,
     QUERY,
     OPTIONS

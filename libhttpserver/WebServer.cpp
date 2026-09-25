@@ -185,6 +185,8 @@ void WebServer::handle_request(boost::beast::http::request<Body, boost::beast::h
         message.type = RequestType::DELETE;
     else if (req.method() == http::verb::put)
         message.type = RequestType::PUT;
+    else if (req.method() == http::verb::patch)
+        message.type = RequestType::PATCH;
     else if (req.method() == http::verb::head)
         message.type = RequestType::HEAD;
     else if (req.method() == http::verb::options)
