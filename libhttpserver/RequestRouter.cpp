@@ -15,7 +15,7 @@ HTTPMessage default_req_handler(const std::string& destination, const HTTPMessag
     HTTPMessage response;
 
     std::stringstream ss;
-    ss << "Requested destination [" + destination + "] does not exist.\n\nQuery parameters:\n";
+    ss << "Requested destination [" << request.type << " " << destination << "] does not exist.\n\nQuery parameters:\n";
 
     for (const auto& it : request.query)
     {
@@ -41,40 +41,50 @@ ChainRouter ChainRouter::route(std::string path)
     return *this;
 }
 
-ChainRouter ChainRouter::all(std::function<HTTPMessage(const HTTPMessage&)> handler)
+ChainRouter ChainRouter::addHandler(RequestType type, ChainRouter::Handler handler)
 {
-    common_handler.push_back(handler);
+    request_handlers[type].push_back(handler);
     return *this;
 }
 
-ChainRouter ChainRouter::put(std::function<HTTPMessage(const HTTPMessage&)> handler)
+ChainRouter ChainRouter::all(ChainRouter::Handler handler)
 {
-    put_handler.push_back(handler);
-    return *this;
+    return addHandler(ALL, handler);
 }
 
-ChainRouter ChainRouter::get(std::function<HTTPMessage(const HTTPMessage&)> handler)
+ChainRouter ChainRouter::put(ChainRouter::Handler handler)
 {
-    get_handler.push_back(handler);
-    return *this;
+    return addHandler(PUT, handler);
 }
 
-ChainRouter ChainRouter::post(std::function<HTTPMessage(const HTTPMessage&)> handler)
+ChainRouter ChainRouter::patch(ChainRouter::Handler handler)
 {
-    post_handler.push_back(handler);
-    return *this;
+    return addHandler(PATCH, handler);
 }
 
-ChainRouter ChainRouter::delete_(std::function<HTTPMessage(const HTTPMessage&)> handler)
+ChainRouter ChainRouter::get(ChainRouter::Handler handler)
 {
-    delete_handler.push_back(handler);
-    return *this;
+    return addHandler(GET, handler);
 }
 
-ChainRouter ChainRouter::head(std::function<HTTPMessage(const HTTPMessage&)> handler)
+ChainRouter ChainRouter::post(ChainRouter::Handler handler)
 {
-    head_handler.push_back(handler);
-    return *this;
+    return addHandler(POST, handler);
+}
+
+ChainRouter ChainRouter::delete_(ChainRouter::Handler handler)
+{
+    return addHandler(DELETE, handler);
+}
+
+ChainRouter ChainRouter::head(ChainRouter::Handler handler)
+{
+    return addHandler(HEAD, handler);
+}
+
+ChainRouter ChainRouter::query(ChainRouter::Handler handler)
+{
+    return addHandler(QUERY, handler);
 }
 
 HTTPMessage ChainRouter::operator()(const HTTPMessage& request)
@@ -84,56 +94,14 @@ HTTPMessage ChainRouter::operator()(const HTTPMessage& request)
 
     switch(request.type)
     {
-        case RequestType::GET:
-            for (const auto& handler : get_handler)
-            {
-                isProcessed = true;
-                interim_request = handler(interim_request);
-                if (!interim_request.isRequest)
-                {
-                    response = interim_request;
-                    break;
-                }
-            }
-            break;
-        case RequestType::PUT:
-            for (const auto& handler : put_handler)
-            {
-                isProcessed = true;
-                interim_request = handler(interim_request);
-                if (!interim_request.isRequest)
-                {
-                    response = interim_request;
-                    break;
-                }
-            }
-            break;
-        case RequestType::POST:
-            for (const auto& handler : post_handler)
-            {
-                isProcessed = true;
-                interim_request = handler(interim_request);
-                if (!interim_request.isRequest)
-                {
-                    response = interim_request;
-                    break;
-                }
-            }
-            break;
-        case RequestType::DELETE:
-            for (const auto& handler : delete_handler)
-            {
-                isProcessed = true;
-                interim_request = handler(interim_request);
-                if (!interim_request.isRequest)
-                {
-                    response = interim_request;
-                    break;
-                }
-            }
-            break;
         case RequestType::HEAD:
-            for (const auto& handler : head_handler)
+        case RequestType::GET:
+        case RequestType::POST:
+        case RequestType::PUT:
+        case RequestType::PATCH:
+        case RequestType::DELETE:
+        case RequestType::QUERY:
+            for (const auto& handler : request_handlers[request.type])
             {
                 isProcessed = true;
                 interim_request = handler(interim_request);
@@ -147,20 +115,31 @@ HTTPMessage ChainRouter::operator()(const HTTPMessage& request)
         case RequestType::OPTIONS:
             {
                 isProcessed = true;
-                std::string allowed_methods= "OPTIONS";
-                if (!get_handler.empty())
-                    allowed_methods.append(", GET");
-                if (!put_handler.empty())
-                    allowed_methods.append(", PUT");
-                if (!post_handler.empty())
-                    allowed_methods.append(", POST");
-                if (!delete_handler.empty())
-                    allowed_methods.append(", DELETE");
-                if (!head_handler.empty())
-                    allowed_methods.append(", HEAD");
+                std::vector<RequestType> allowed_methods = {OPTIONS};
+                for (const auto& [type, handlers] : request_handlers)
+                    if (type == ALL) {
+                        // all methods are allowed if there is a catch-all handler except the default one
+                        if(handlers.size() > 1){
+                            allowed_methods = {HEAD, GET, POST, PUT, PATCH, DELETE, QUERY, OPTIONS};
+                            break;
+                        }
+                        // else, skip default handler
+                    }
+                    else {
+                        allowed_methods.push_back(type);
+                    }
 
-                response.header["Allow"] = allowed_methods;
-                response.header["Access-Control-Allow-Methods"] = allowed_methods;
+                // https://stackoverflow.com/a/9279620
+                std::stringstream allowed_methods_ss;
+                for (const auto& method : allowed_methods) {
+                    if (&method != &allowed_methods[0]) {
+                        allowed_methods_ss << ", ";
+                    }
+                    allowed_methods_ss << method;
+                }
+
+                response.header["Allow"] = allowed_methods_ss.str();
+                response.header["Access-Control-Allow-Methods"] = allowed_methods_ss.str();
             }
             break;
         default:
@@ -170,7 +149,7 @@ HTTPMessage ChainRouter::operator()(const HTTPMessage& request)
 
     if (!isProcessed)
     {
-        for (const auto& handler : common_handler)
+        for (const auto& handler : request_handlers[ALL])
         {
             isProcessed = true;
             interim_request = handler(interim_request);
